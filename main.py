@@ -160,5 +160,5 @@ dispatcher.add_error_handler(error)
 updater.start_webhook(listen="0.0.0.0",
                         port=os.environ.get("PORT",443),
                         url_path=BotId,
-                        webhook_url="https://tally-tele-app@herokuapp.com/"+BotId)
+                        webhook_url="https://tally-tele-app.herokuapp.com/"+BotId)
 updater.idle()
