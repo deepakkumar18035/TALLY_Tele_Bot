@@ -158,7 +158,7 @@ dispatcher.add_handler(conv_handler)
 dispatcher.add_error_handler(error)
 #updater.start_polling()
 updater.start_webhook(listen="0.0.0.0",
-                        port=int(os.environ.get("PORT",8443)),
-                        url_path=BotId,
-                        webhook_url="https://tally-tele-app.herokuapp.com/"+BotId)
+                        port=int(os.environ.get("PORT",3978)),
+                        url_path=BotId)
+updater.bot.setWebhook("https://tally-tele-app.herokuapp.com/"+BotId)
 updater.idle()
