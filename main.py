@@ -6,9 +6,10 @@ from telegram.ext import (
     ConversationHandler,
 )
 from telegram import ReplyKeyboardMarkup, ParseMode
-import os
+import os 
 import pandas as pd
 
+BotId = os.environ.get("BotId")
 class DataBase:
     def __init__(self):
         self.dB = pd.DataFrame(columns = ["Name","cash","upi","Total"])
@@ -155,5 +156,9 @@ conv_handler = ConversationHandler(
 
 dispatcher.add_handler(conv_handler)
 dispatcher.add_error_handler(error)
-updater.start_polling()
+#updater.start_polling()
+updater.start_webhook(listen="0.0.0.0",
+                        port=os.environ.get("PORT",443),
+                        url_path=BotId,
+                        webhook_url="https://tally-tele-app@herokuapp.com/"+BotId)
 updater.idle()
