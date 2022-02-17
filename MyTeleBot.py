@@ -10,7 +10,8 @@ import os
 import pandas as pd
 
 class MyTeleBot:
-    def __init__(self,token):
+    def __init__(self,token,webhookurl=None):
+        self.webhookurl = webhookurl
         self.token = token
         self.updater = Updater(token, use_context=True)
         self.dispatcher = self.updater.dispatcher
@@ -21,7 +22,10 @@ class MyTeleBot:
             self.updater.start_webhook(listen="0.0.0.0",
                                     port=int(os.environ.get("PORT",3978)),
                                     url_path=self.token)
-            self.updater.bot.setWebhook("https://tally-tele-app.herokuapp.com/"+self.token)
+            if self.webhookurl == None:
+                raise Exception("Webhook Url not provided.")
+            else:
+                self.updater.bot.setWebhook(self.webhookurl + self.token)
         self.updater.idle()
     def add_command_handler(self,cmnd):
         def decorator(cmndFunc):
@@ -48,6 +52,7 @@ class ConvHandler:
         self.entry_points = []
         self.fallbacks = []
         self.states = {}
+        self.tracker = []
     def add_entry_handler(self,handlerType,textPattern):
         def decorator(func):
             if handlerType == "CMD":
@@ -93,9 +98,13 @@ class DataBase:
         self.dB = self.dB.set_index('Name')
     def add_empty_row(self,index):
         self.dB = self.dB.append(pd.Series({'cash':0,'upi':0},name=index,dtype='int64'))
+        os.system("cls")
+        print(self.dB)
         return index
     def rm_row(self,index):
         self.dB = self.dB.drop(index)
+        os.system("cls")
+        print(self.dB)
         return index
     def get_members(self):
         return " ".join(self.dB.index)

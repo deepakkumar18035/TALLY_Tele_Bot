@@ -1,16 +1,13 @@
 from MyTeleBot import MyTeleBot,ConvHandler,DataBase
-from telegram import ReplyKeyboardMarkup,InlineKeyboardButton,InlineKeyboardMarkup
+from telegram import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+)
 from telegram.ext import (
     ConversationHandler,
 )
 import os 
 import pandas as pd
-
-
-os.system("cls")
-#BotId = os.environ.get("BotId")
-BotId = "5207952198:AAEGoOTJeQCCQ0aufZLrIIn0O4UFaahYit0"
-db = DataBase()
 
 def tableize(df):
     if not isinstance(df, pd.DataFrame):
@@ -31,149 +28,135 @@ def tableize(df):
     out.append(hline)
     return "\n".join(out)
 
-
-
-bot = MyTeleBot("5207952198:AAEGoOTJeQCCQ0aufZLrIIn0O4UFaahYit0")
-
-@bot.add_command_handler("start")
-def start_command(update, context):
-    name = update.message.from_user.first_name
-    update.message.reply_text("Hey "+str(name)+"!")
-    db.clearDB()
-
-@bot.add_command_handler("help")
-def help_command(update, context):
-    update.message.reply_text("/start \n /add \n /remove\n /summary \n /paid \n /help")
-
-@bot.add_command_handler("add")
-def add_command(update, context):
-    members = [db.add_empty_row(y) for x in context.args for y in x.split("-")]
-    os.system("cls")
-    print(db.dB)
-    update.message.reply_text(" ".join(members) + " added.")
-
-@bot.add_command_handler("remove")
-def rm_command(update, context):
-    members = [db.rm_row(y) for x in context.args for y in x.split("-")]
-    os.system("cls")
-    print(db.dB)
-    update.message.reply_text(" ".join(members) + " removed.")
-
-@bot.add_command_handler("summary")
-def sumamry_command(update, context):
-    x = db.dB.copy(deep=True)
-    x["Total"] = x["cash"] + x["upi"]
-    x.loc["Total"] = x.sum()
-    x['name'] = x.index
-    temp = x['name']
-    x.drop(labels=['name'], axis=1,inplace = True)
-    x.insert(0, 'name', temp)
-    update.message.reply_text(tableize(x))
-
-"""
-@bot.add_msg_handler(".*")
-def handle_message(update, context):
-    name = update.message.from_user.first_name
-    #if name in ["Deepak Kumar","Harish"]:
-    #    text = str(update.message.text).lower()
-    #    print("\nReceived Script: " + text + "\n")
-    #    status = R.develope(update.message.chat.id,text)
-    #    if status:
-    #        sentStatus = R.send_file(update.message.chat.id)
-    #        print(["Video sent Sucessfully!" if sentStatus else "Unable to upload Video files."][0])
-    #    else:
-    #        update.message.reply_text(str("Something unexpected happen! Please try again later."))
-    #else:
-    #    update.message.reply_text("This project is under developement. You don't have privilege to access it now.")
-    update.message.reply_text("This project is under developement. You don't have privilege to access it now.")
-"""
+os.system("cls")
+db = DataBase()
+#BotId = os.environ.get("BotId")
+BotId = "5207952198:AAEGoOTJeQCCQ0aufZLrIIn0O4UFaahYit0"
+bot = MyTeleBot(BotId,webhookurl ="https://tally-tele-app.herokuapp.com/")
 
 @bot.add_err_handler()
 def error(update, context):
     print(f"Update {update} caused error {context.error}")
 
-"""
-conversation1 = ConvHandler()
-conversation1.tracker = []
-@conversation1.add_entry_handler("CMD","paid")
-def paid_command(update, context):
-    keys = []
-    for x in db.dB.index:
-        keys.append(["@"+x])
-    reply_markup = ReplyKeyboardMarkup(keys,one_time_keyboard=True,
-                                       resize_keyboard=True)
-    update.message.reply_text("Who?",reply_markup=reply_markup)
-    return 1
-@conversation1.add_state_handler(1,"MSG","^@")
-def typeValue(update,context): 
-    conversation1.tracker.append(update.message.text[1:])   
-    keys = [["cash","upi"]]
-    reply_markup = ReplyKeyboardMarkup(keys,one_time_keyboard=True,
-                                       resize_keyboard=True)
-    update.message.reply_text("How?",reply_markup=reply_markup)
-    return 2
-@conversation1.add_state_handler(2,"MSG","^cash$|^upi$")
-def amountValue(update,context):
-    conversation1.tracker.append(update.message.text)      
-    update.message.reply_text("Enter the amount:")
-    return 3
-@conversation1.add_state_handler(3,"MSG","[0-999]|^-[0-999]")
-def updateValue(update,context): 
-    conversation1.tracker.append(update.message.text)   
-    print(conversation1.tracker)
-    db.dB.loc[conversation1.tracker[0]][conversation1.tracker[1]] = int(conversation1.tracker[2])
-    conversation1.tracker = []
-    update.message.reply_text("Added")
-    return ConversationHandler.END
-@conversation1.add_fallback_handler("CMD","cancel")
-def cancel(update, context):
-    user = update.message.from_user
-    update.message.reply_text('Bye! I hope we can talk again some day.')
-    conversation1.tracker = []
-    return ConversationHandler.END
-bot.add_convo_handler(conversation1.get_handler())
-"""
-
 conversation2 = ConvHandler()
 @conversation2.add_entry_handler("CMD","rovo")
+@conversation2.add_state_handler(1,"CBQ","^mainMenu$")
 def ROVO_Start_Menu(update,context):
     keyboard = [[InlineKeyboardButton("add", callback_data="add"),
                 InlineKeyboardButton("remove", callback_data="remove"),
-                InlineKeyboardButton("summary", callback_data="summary"),
-                InlineKeyboardButton("clear", callback_data="clear")]]
+                InlineKeyboardButton("paid", callback_data="paid")],
+                [InlineKeyboardButton("summary", callback_data="summary"),
+                InlineKeyboardButton("clear", callback_data="clear"),
+                InlineKeyboardButton("cancel", callback_data="cancel")]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    if update.message :
+        update.message.reply_text("Select the options below:", reply_markup=reply_markup)
+    if update.callback_query: 
+        query = update.callback_query
+        query.answer()
+        query.edit_message_text("Select the options below:", reply_markup=reply_markup)
+    return 2
+@conversation2.add_state_handler(2,"CBQ","^add$|^remove$|^summary$|^clear$|^paid$|^cancel$")
+def state2(update,context):
+    query = update.callback_query
+    if query.data == "add":
+        query.answer()
+        query.edit_message_text(text="Enter names to add:")
+        return 3
+    if query.data == "remove":
+        query.answer()
+        n = 3
+        keyboard = [InlineKeyboardButton(x, callback_data="@"+x) for x in db.dB.index]
+        keyboard = [keyboard[i:i+n] for i in range(0, len(keyboard), n)]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        query.edit_message_text(text="Select names to remove:", reply_markup=reply_markup)
+        return 3
+    if query.data == "summary":
+        query.answer()
+        x = db.dB.copy(deep=True)
+        x["Total"] = x["cash"] + x["upi"]
+        x.loc["Total"] = x.sum()
+        x['name'] = x.index
+        temp = x['name']
+        x.drop(labels=['name'], axis=1,inplace = True)
+        x.insert(0, 'name', temp)
+        summary = tableize(x)
+        keyboard = [[InlineKeyboardButton("Back to Main Menu", callback_data="mainMenu")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        query.edit_message_text(summary + "\n\n" + "Select the options below:", reply_markup=reply_markup)
+        return 1
+    if query.data == "clear":
+        db.clearDB()
+        query.answer("Database cleared!")
+        keyboard = [[InlineKeyboardButton("Back to Main Menu", callback_data="mainMenu")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        query.edit_message_text("Select the options below:", reply_markup=reply_markup)
+        return 1
+    if query.data == "cancel":
+        query.answer()
+        query.edit_message_text("Bye! I hope we can talk again some day.")
+        return ConversationHandler.END
+    if query.data == "paid":
+        query.answer()
+        n = 3
+        keyboard = [InlineKeyboardButton(x, callback_data="@"+x) for x in db.dB.index]
+        keyboard = [keyboard[i:i+n] for i in range(0, len(keyboard), n)]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        query.edit_message_text(text="Who?", reply_markup=reply_markup)
+        return 4
+
+@conversation2.add_state_handler(3,"MSG",".*")
+def add_members(update,context):
+    members = [db.add_empty_row(y) for y in update.message.text.replace('\n', '-').split("-")]
+    update.message.reply_text(", ".join(members) + " added!")
+    keyboard = [[InlineKeyboardButton("Back to Main Menu", callback_data="mainMenu")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     update.message.reply_text("Select the options below:", reply_markup=reply_markup)
     return 1
-@conversation2.add_state_handler(1,"CBQ","^add$|^remove$|^summary$|^clear$|^paid$")
-def state1(update,context):
+@conversation2.add_state_handler(3,"CBQ","^@")
+def rmv_members(update,context):
     query = update.callback_query
     query.answer()
-    keyboard = [[]]
-    if query.data == "add":
-        
-
-
-    keyboard = [
-        [
-            InlineKeyboardButton("Cash", callback_data="cash"),
-            InlineKeyboardButton("UPI", callback_data="upi"),
-        ]
-    ]
+    db.rm_row(query.data[1:])
+    keyboard = [[InlineKeyboardButton("Back to Main Menu", callback_data="mainMenu")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    query.edit_message_text(
-        text="Payment Type", reply_markup=reply_markup
-    )
-    return ConversationHandler.END
+    query.edit_message_text(query.data[1:] + " removed!\nSelect the options below:", reply_markup=reply_markup)
+    return 1
+@conversation2.add_state_handler(4,"CBQ","^@|^cash$|^upi$")
+def payment_options(update,context):
+    query = update.callback_query
+    query.answer()
+    if query.data not in ["cash","upi"]:
+        conversation2.tracker.append(query.data[1:])
+        keyboard = [[InlineKeyboardButton("Cash", callback_data="cash"),
+                    InlineKeyboardButton("UPI", callback_data="upi")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        query.edit_message_text("How?", reply_markup=reply_markup)
+        return 4
+    else:
+        conversation2.tracker.append(query.data)
+        query.edit_message_text(text="Enter amount:")
+        return 5
+@conversation2.add_state_handler(5,"MSG","[0-999]|^-[0-999]")
+def payment_update(update,context):
+    conversation2.tracker.append(update.message.text)
+    db.dB.loc[conversation2.tracker[0]][conversation2.tracker[1]] = int(conversation2.tracker[2])
+    update.message.reply_text(conversation2.tracker[0] + " paid " + conversation2.tracker[2] + " by " + conversation2.tracker[1])
+    conversation2.tracker = []
+    keyboard = [[InlineKeyboardButton("Back to Main Menu", callback_data="mainMenu")]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    update.message.reply_text("Select the options below:", reply_markup=reply_markup)
+    return 1
+
 @conversation2.add_fallback_handler("CMD","cancel")
-def cancel(update, context):
+def conversation2_cancel(update, context):
     user = update.message.from_user
     update.message.reply_text('Bye! I hope we can talk again some day.')
     return ConversationHandler.END
 bot.add_convo_handler(conversation2.get_handler())
 
-
+bot.run("webhook")
 print("Tally is online now.\n")
-bot.run("polling")
 
 #updater.start_webhook(listen="0.0.0.0",
 #                        port=int(os.environ.get("PORT",3978)),
