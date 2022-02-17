@@ -1,4 +1,10 @@
-from MyTeleBot import MyTeleBot,ConvHandler,DataBase
+from MyTeleBot import (
+    MyTeleBot,
+    ConvHandler,
+    DataBase,
+    update_excel,
+    tableize
+    )
 from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -9,25 +15,6 @@ from telegram.ext import (
 import os 
 import pandas as pd
 
-def tableize(df):
-    if not isinstance(df, pd.DataFrame):
-        return
-    df_columns = df.columns.tolist() 
-    max_len_in_lst = lambda lst: len(sorted(lst, reverse=True, key=len)[0])
-    align_center = lambda st, sz: "{0}{1}{0}".format(" "*(1+(sz-len(st))//2), st)[:sz] if len(st) < sz else st
-    align_right = lambda st, sz: "{0}{1} ".format(" "*(sz-len(st)-1), st) if len(st) < sz else st
-    max_col_len = max_len_in_lst(df_columns)
-    max_val_len_for_col = dict([(col, max_len_in_lst(df.iloc[:,idx].astype('str'))) for idx, col in enumerate(df_columns)])
-    col_sizes = dict([(col, 2 + max(max_val_len_for_col.get(col, 0), max_col_len)) for col in df_columns])
-    build_hline = lambda row: '+'.join(['-' * col_sizes[col] for col in row]).join(['+', '+'])
-    build_data = lambda row, align: "|".join([align(str(val), col_sizes[df_columns[idx]]) for idx, val in enumerate(row)]).join(['|', '|'])
-    hline = build_hline(df_columns)
-    out = [hline, build_data(df_columns, align_center), hline]
-    for _, row in df.iterrows():
-        out.append(build_data(row.tolist(), align_right))
-    out.append(hline)
-    return "\n".join(out)
-
 os.system("cls")
 db = DataBase()
 #BotId = os.environ.get("BotId")
@@ -37,6 +24,77 @@ bot = MyTeleBot(BotId,webhookurl ="https://tally-tele-app.herokuapp.com/")
 @bot.add_err_handler()
 def error(update, context):
     print(f"Update {update} caused error {context.error}")
+
+
+conversation1 = ConvHandler()
+@conversation1.add_entry_handler("CMD","creditcard")
+@conversation1.add_state_handler(1,"CBQ","^mainMenu$")
+def credit_card_Start_Menu(update,context):
+    keyboard = [[InlineKeyboardButton("Add payment", callback_data="add")],
+                [InlineKeyboardButton("summary", callback_data="summary"),
+                InlineKeyboardButton("cancel", callback_data="cancel")]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    if update.message :
+        update.message.reply_text("Select the options below:", reply_markup=reply_markup)
+    if update.callback_query: 
+        query = update.callback_query
+        query.answer()
+        query.edit_message_text("Select the options below:", reply_markup=reply_markup)
+    return 2
+@conversation1.add_state_handler(2,"CBQ","^add$|^summary$|^cancel$")
+def state2(update,context):
+    query = update.callback_query
+    if query.data == "add":
+        query.answer()
+        query.edit_message_text(text="Enter Description:")
+        return 3
+    if query.data == "summary":
+        query.answer("This functionality is currently disabled!")
+        summary = ""
+        keyboard = [[InlineKeyboardButton("Back to Main Menu", callback_data="mainMenu")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        query.edit_message_text(summary + "\n\n" + "Select the options below:", reply_markup=reply_markup)
+        return 1
+    if query.data == "cancel":
+        query.answer()
+        query.edit_message_text("Bye! I hope we can talk again some day.")
+        return ConversationHandler.END
+
+@conversation1.add_state_handler(3,"MSG",".*")
+def add_payment(update,context):
+    conversation1.tracker.append(update.message.text)
+    keyboard = [[InlineKeyboardButton("Payment", callback_data="@Payment"),
+                InlineKeyboardButton("Transaction", callback_data="@Transaction")],
+                [InlineKeyboardButton("Fee", callback_data="@Fee"),
+                InlineKeyboardButton("EMI", callback_data="@EMI")],
+                [InlineKeyboardButton("Intrest", callback_data="@Intrest")]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    update.message.reply_text("Select the Type of transaction:", reply_markup=reply_markup)
+    return 4
+@conversation1.add_state_handler(4,"CBQ","^@")
+def get_payment_amount(update,context):
+    query = update.callback_query
+    query.answer()
+    conversation1.tracker.append(query.data[1:])
+    query.edit_message_text("Enter the amount:")
+    return 5
+@conversation1.add_state_handler(5,"MSG","[0-999]|^-[0-999]")
+def payment_update(update,context):
+    conversation1.tracker.append(update.message.text)
+    update_excel(conversation1.tracker[0],conversation1.tracker[2],conversation1.tracker[1])
+    update.message.reply_text(conversation1.tracker[2] + " paid for " + conversation1.tracker[0] + " - " + conversation1.tracker[1])
+    conversation1.tracker = []
+    keyboard = [[InlineKeyboardButton("Back to Main Menu", callback_data="mainMenu")]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    update.message.reply_text("Select the options below:", reply_markup=reply_markup)
+    return 1
+
+@conversation1.add_fallback_handler("CMD","cancel")
+def conversation1_cancel(update, context):
+    user = update.message.from_user
+    update.message.reply_text('Bye! I hope we can talk again some day.')
+    return ConversationHandler.END
+bot.add_convo_handler(conversation1.get_handler())
 
 conversation2 = ConvHandler()
 @conversation2.add_entry_handler("CMD","rovo")
@@ -155,7 +213,7 @@ def conversation2_cancel(update, context):
     return ConversationHandler.END
 bot.add_convo_handler(conversation2.get_handler())
 
-bot.run("webhook")
+bot.run("polling")
 print("Tally is online now.\n")
 
 #updater.start_webhook(listen="0.0.0.0",
