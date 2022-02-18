@@ -23,6 +23,11 @@ bot = MyTeleBot(BotId,webhookurl ="https://tally-tele-app.herokuapp.com/")
 @bot.add_err_handler()
 def error(update, context):
     print(f"Update {update} caused error {context.error}")
+@bot.add_command_handler("start")
+def start(update, context):
+    features = ["rovo","creditcard"]
+    features = ["/" + x for x in features]
+    update.message.reply_text("\n".join(features))
 
 
 conversation1 = ConvHandler()
@@ -212,10 +217,7 @@ def conversation2_cancel(update, context):
     return ConversationHandler.END
 bot.add_convo_handler(conversation2.get_handler())
 
-bot.run("webhook")
 print("Tally is online now.\n")
+#bot.run("polling")
+bot.run("webhook")
 
-#updater.start_webhook(listen="0.0.0.0",
-#                        port=int(os.environ.get("PORT",3978)),
-#                        url_path=BotId)
-#updater.bot.setWebhook("https://tally-tele-app.herokuapp.com/"+BotId
