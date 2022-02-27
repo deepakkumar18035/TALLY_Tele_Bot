@@ -17,8 +17,7 @@ import pandas as pd
 
 os.system("cls")
 db = DataBase()
-#BotId = os.environ.get("BotId")
-BotId = "5207952198:AAEGoOTJeQCCQ0aufZLrIIn0O4UFaahYit0"
+BotId = os.environ.get("BotId")
 bot = MyTeleBot(BotId,webhookurl ="https://tally-tele-app.herokuapp.com/")
 
 @bot.add_err_handler()
@@ -234,6 +233,6 @@ def conversation2_cancel(update, context):
 bot.add_convo_handler(conversation2.get_handler())
 
 print("Tally is online now.\n")
-bot.run("polling")
-#bot.run("webhook")
+#bot.run("polling")
+bot.run("webhook")
 
