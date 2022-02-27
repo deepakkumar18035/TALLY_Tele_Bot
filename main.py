@@ -17,7 +17,8 @@ import pandas as pd
 
 os.system("cls")
 db = DataBase()
-BotId = os.environ.get("BotId")
+#BotId = os.environ.get("BotId")
+BotId = "5207952198:AAEGoOTJeQCCQ0aufZLrIIn0O4UFaahYit0"
 bot = MyTeleBot(BotId,webhookurl ="https://tally-tele-app.herokuapp.com/")
 
 @bot.add_err_handler()
@@ -106,10 +107,12 @@ conversation2 = ConvHandler()
 def ROVO_Start_Menu(update,context):
     keyboard = [[InlineKeyboardButton("add", callback_data="add"),
                 InlineKeyboardButton("remove", callback_data="remove"),
-                InlineKeyboardButton("paid", callback_data="paid")],
-                [InlineKeyboardButton("summary", callback_data="summary"),
+                InlineKeyboardButton("edit APP", callback_data="edit_APP")],
+                [InlineKeyboardButton("table", callback_data="table"),
                 InlineKeyboardButton("clear", callback_data="clear"),
-                InlineKeyboardButton("cancel", callback_data="cancel")]]
+                InlineKeyboardButton("cancel", callback_data="cancel")],
+                [InlineKeyboardButton("summary", callback_data="summary"),
+                InlineKeyboardButton("paid", callback_data="paid")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     if update.message :
         update.message.reply_text("Select the options below:", reply_markup=reply_markup)
@@ -118,13 +121,18 @@ def ROVO_Start_Menu(update,context):
         query.answer()
         query.edit_message_text("Select the options below:", reply_markup=reply_markup)
     return 2
-@conversation2.add_state_handler(2,"CBQ","^add$|^remove$|^summary$|^clear$|^paid$|^cancel$")
+@conversation2.add_state_handler(2,"CBQ","^add$|^remove$|^summary$|^clear$|^paid$|^cancel$|^edit_APP$|^table$")
 def state2(update,context):
     query = update.callback_query
     if query.data == "add":
         query.answer()
         query.edit_message_text(text="Enter names to add:")
         return 3
+    query = update.callback_query
+    if query.data == "edit_APP":
+        query.answer()
+        query.edit_message_text(text="Enter amount per person:")
+        return 6
     if query.data == "remove":
         query.answer()
         n = 3
@@ -135,17 +143,17 @@ def state2(update,context):
         return 3
     if query.data == "summary":
         query.answer()
-        x = db.dB.copy(deep=True)
-        x["Total"] = x["cash"] + x["upi"]
-        x.loc["Total"] = x.sum()
-        x['name'] = x.index
-        temp = x['name']
-        x.drop(labels=['name'], axis=1,inplace = True)
-        x.insert(0, 'name', temp)
-        summary = tableize(x)
+        summary = db.makeSumamry()
         keyboard = [[InlineKeyboardButton("Back to Main Menu", callback_data="mainMenu")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
         query.edit_message_text(summary + "\n\n" + "Select the options below:", reply_markup=reply_markup)
+        return 1
+    if query.data == "table":
+        query.answer()
+        summary = db.showtable()
+        keyboard = [[InlineKeyboardButton("Back to Main Menu", callback_data="mainMenu")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        query.edit_message_text(summary + "\n" + "Select the options below:", reply_markup=reply_markup)
         return 1
     if query.data == "clear":
         db.clearDB()
@@ -209,6 +217,14 @@ def payment_update(update,context):
     reply_markup = InlineKeyboardMarkup(keyboard)
     update.message.reply_text("Select the options below:", reply_markup=reply_markup)
     return 1
+@conversation2.add_state_handler(6,"MSG","[0-999]|^-[0-999]")
+def edit_APP(update,context):
+    db.set_app(int(update.message.text))
+    update.message.reply_text("Amount per person updated!")
+    keyboard = [[InlineKeyboardButton("Back to Main Menu", callback_data="mainMenu")]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    update.message.reply_text("Select the options below:", reply_markup=reply_markup)
+    return 1
 
 @conversation2.add_fallback_handler("CMD","cancel")
 def conversation2_cancel(update, context):
@@ -218,6 +234,6 @@ def conversation2_cancel(update, context):
 bot.add_convo_handler(conversation2.get_handler())
 
 print("Tally is online now.\n")
-#bot.run("polling")
-bot.run("webhook")
+bot.run("polling")
+#bot.run("webhook")
 

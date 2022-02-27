@@ -9,6 +9,7 @@ from telegram.ext import (
 import os
 import pandas as pd
 import requests
+import json
 
 def tableize(df):
     if not isinstance(df, pd.DataFrame):
@@ -24,9 +25,10 @@ def tableize(df):
     build_data = lambda row, align: "|".join([align(str(val), col_sizes[df_columns[idx]]) for idx, val in enumerate(row)]).join(['|', '|'])
     hline = build_hline(df_columns)
     out = [hline, build_data(df_columns, align_center), hline]
+    out = []
     for _, row in df.iterrows():
         out.append(build_data(row.tolist(), align_right))
-    out.append(hline)
+    #out.append(hline)
     return "\n".join(out)
 
 def update_excel(desc,amount,type):
@@ -124,10 +126,16 @@ class ConvHandler:
 
 class DataBase:
     def __init__(self):
-        self.dB = pd.DataFrame(columns = ["Name","cash","upi","Total"])
+        self.dB = pd.DataFrame(columns = ["Name","PB","cash","upi","Total","Remaining"])
         self.dB = self.dB.set_index('Name')
+        self.TotalMembers = 0
+        self.app = 0
     def add_empty_row(self,index):
-        self.dB = self.dB.append(pd.Series({'cash':0,'upi':0},name=index,dtype='int64'))
+        f = open('data.json')
+        pb = json.load(f)       
+        f.close()
+        self.dB = self.dB.append(pd.Series({'PB':pb.get(index,0),'cash':0,'upi':0},name=index,dtype='int8'))
+        self.TotalMembers+=1
         os.system("cls")
         print(self.dB)
         return index
@@ -135,9 +143,34 @@ class DataBase:
         self.dB = self.dB.drop(index)
         os.system("cls")
         print(self.dB)
+        self.TotalMembers-=1
         return index
     def get_members(self):
         return " ".join(self.dB.index)
+    def set_app(self,app):
+        self.app = app
+        return 
     def clearDB(self):
-        self.dB = pd.DataFrame(columns = ["Name","cash","upi","Total"])
-        self.dB = self.dB.set_index('Name')
+        self.__init__()
+    def makeSumamry(self):
+        x = self.dB.copy(deep=True)
+        x["Total"] = x["cash"] + x["upi"]
+        x["Remaining"] = self.app - x["Total"] - x["PB"]
+        x.loc["Total"] = x.sum()
+        x.insert(0, 'name', x.index)
+        summary = ""
+        summary += "Total Members = " + str(self.TotalMembers) + "\n"
+        summary += "Amount Per Person = " + str(self.app) + "\n"
+        summary += str(self.TotalMembers) + " * " + str(self.app) + " = " + str(self.TotalMembers*self.app) + "\n\n"
+        summary += "Accounted " + str(x["PB"][-1]) + " + " + str(x["Total"][-1]) + " + " + str(x["Remaining"][-1]-self.app)
+        summary += " + " + str(self.app) + " = " + str(x["Total"][-1]+x["PB"][-1]+x["Remaining"][-1]) + "\n"
+        return summary
+    def showtable(self):
+        x = self.dB.copy(deep=True)
+        x["Total"] = x["cash"] + x["upi"]
+        x["Remaining"] = self.app - x["Total"] - x["PB"]
+        x.loc["Total"] = x.sum()
+        os.system("cls")
+        print(x)
+        hline = "\n" + "-"*60 + "\n"
+        return x.to_csv().replace(',', ' -- ').replace("\n",hline)
