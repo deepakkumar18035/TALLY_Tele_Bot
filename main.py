@@ -85,8 +85,9 @@ def get_payment_amount(update,context):
 @conversation1.add_state_handler(5,"MSG","[0-999]|^-[0-999]")
 def payment_update(update,context):
     conversation1.tracker.append(update.message.text)
-    update_excel(conversation1.tracker[0],conversation1.tracker[2],conversation1.tracker[1])
-    update.message.reply_text(conversation1.tracker[2] + " paid for " + conversation1.tracker[0] + " - " + conversation1.tracker[1])
+    latestOutstanding = update_excel(conversation1.tracker[0],conversation1.tracker[2],conversation1.tracker[1])
+    update.message.reply_text(conversation1.tracker[2] + " paid for " + conversation1.tracker[0] + " - " + conversation1.tracker[1] + ". \n" +
+        "Your Current Outstanding = " + latestOutstanding)
     conversation1.tracker = []
     keyboard = [[InlineKeyboardButton("Back to Main Menu", callback_data="mainMenu")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -231,6 +232,17 @@ def conversation2_cancel(update, context):
     update.message.reply_text('Bye! I hope we can talk again some day.')
     return ConversationHandler.END
 bot.add_convo_handler(conversation2.get_handler())
+
+db1 = DataBase()
+conversation3 = ConvHandler()
+@conversation3.add_entry_handler("CMD","roundTable")
+def credit_card_Start_Menu(update,context):
+    members = [db1.add_empty_row(y) for y in update.message.text.replace('\n', '-').split("-")]
+    update.message.reply_text(", ".join(members) + " added!")
+    keyboard = [[InlineKeyboardButton("Back to Main Menu", callback_data="mainMenu")]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    update.message.reply_text("Select the options below:", reply_markup=reply_markup)
+bot.add_convo_handler(conversation3.get_handler())
 
 print("Tally is online now.\n")
 #bot.run("polling")

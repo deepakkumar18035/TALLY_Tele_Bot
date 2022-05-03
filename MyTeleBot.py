@@ -40,6 +40,7 @@ def update_excel(desc,amount,type):
             }
     x = requests.post(url, data = myobj)
     print(x.text)
+    return str(round(float(x.text),2))
 
 class MyTeleBot:
     def __init__(self,token,webhookurl=None):
